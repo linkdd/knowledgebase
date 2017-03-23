@@ -1,31 +1,38 @@
 # -*- coding: utf-8 -*-
 
+from knowledgebase.utils import register_api, API
 from knowledgebase.forms.vertex import VertexForm
 from knowledgebase.forms.edge import EdgeForm
-from knowledgebase.forms.edge import WalkForm
-from knowledgebase.utils import register_view
+from knowledgebase.forms.walk import WalkForm
+from knowledgebase.wsgi import get_database
 
-from flask import Blueprint, request, g
-from flask.views import MethodView
+from flask import Blueprint, request
 
 
 blueprint = Blueprint('graph-api', __name__)
 
 
-@register_view(blueprint, 'graph-api-edge', '/edge', pk='eid')
-class EdgeView(MethodView):
+class GraphAPI(API):
+    def __init__(self, *args, **kwargs):
+        super(GraphAPI, self).__init__(*args, **kwargs)
+
+        self.graph = get_database()
+
+
+@register_api(blueprint, 'graph-api-edge', '/edge', pk='eid', pk_type='string')
+class EdgeAPI(GraphAPI):
     def get(self, eid):
         if eid is None:
             return {
                 'success': True,
                 'data': [
                     edge.data()
-                    for edge in g.graph.edges.find(**request.args)
+                    for edge in self.graph.edges.find(**request.args)
                 ]
             }, 200
 
         else:
-            edge = g.graph.edges.get(eid)
+            edge = self.graph.edges.get(eid)
 
             if edge is not None:
                 return {
@@ -43,8 +50,8 @@ class EdgeView(MethodView):
         form = EdgeForm(request.form)
 
         if form.validate():
-            source = g.graph.vertices.get(form.source.data)
-            target = g.graph.vertices.get(form.target.data)
+            source = self.graph.vertices.get(form.source.data)
+            target = self.graph.vertices.get(form.target.data)
 
             if source is None or target is None:
                 return {
@@ -62,7 +69,7 @@ class EdgeView(MethodView):
                 if propname not in ['source', 'target', 'type', 'name', 'eid']
             }
 
-            edge = g.graph.edges.create(
+            edge = self.graph.edges.create(
                 source=source.eid,
                 target=target.eid,
                 type=form.type.data,
@@ -76,12 +83,19 @@ class EdgeView(MethodView):
                 'data': edge.data()
             }, 201
 
+        else:
+            return {
+                'success': False,
+                'data': None,
+                'reason': form.errors
+            }, 400
+
     def put(self, eid):
         form = EdgeForm(request.form)
 
         if form.validate():
-            source = g.graph.vertices.get(form.source.data)
-            target = g.graph.vertices.get(form.target.data)
+            source = self.graph.vertices.get(form.source.data)
+            target = self.graph.vertices.get(form.target.data)
 
             if source is None or target is None:
                 return {
@@ -93,7 +107,7 @@ class EdgeView(MethodView):
                     }
                 }, 400
 
-            edge = g.graph.edges.get(eid)
+            edge = self.graph.edges.get(eid)
 
             if edge is None:
                 return {
@@ -117,8 +131,15 @@ class EdgeView(MethodView):
                 'data': edge.data()
             }, 200
 
+        else:
+            return {
+                'success': False,
+                'data': None,
+                'reason': form.errors
+            }, 400
+
     def delete(self, eid):
-        g.graph.edges.delete(eid)
+        self.graph.edges.delete(eid)
 
         return {
             'success': True,
@@ -126,20 +147,20 @@ class EdgeView(MethodView):
         }, 200
 
 
-@register_view(blueprint, 'graph-api-vertex', '/vertex', pk='eid')
-class VertexView(MethodView):
+@register_api(blueprint, 'graph-api-vertex', '/vertex', pk='eid', pk_type='string')
+class VertexAPI(GraphAPI):
     def get(self, eid):
         if eid is None:
             return {
                 'success': True,
                 'data': [
                     vertex.data()
-                    for vertex in g.graph.vertices.find(**request.args)
+                    for vertex in self.graph.vertices.find(**request.args)
                 ]
             }, 200
 
         else:
-            vertex = g.graph.vertices.get(eid)
+            vertex = self.graph.vertices.get(eid)
 
             if vertex is not None:
                 return {
@@ -163,7 +184,7 @@ class VertexView(MethodView):
                 if propname not in ['type', 'name', 'eid']
             }
 
-            vertex = g.graph.vertices.create(
+            vertex = self.graph.vertices.create(
                 type=form.type.data,
                 name=form.name.data,
                 **properties
@@ -175,11 +196,18 @@ class VertexView(MethodView):
                 'data': vertex.data()
             }, 201
 
+        else:
+            return {
+                'success': False,
+                'data': None,
+                'reason': form.errors
+            }, 400
+
     def put(self, eid):
         form = VertexForm(request.form)
 
         if form.validate():
-            vertex = g.graph.vertices.get(eid)
+            vertex = self.graph.vertices.get(eid)
 
             if vertex is None:
                 return {
@@ -201,8 +229,15 @@ class VertexView(MethodView):
                 'data': vertex.data()
             }, 200
 
+        else:
+            return {
+                'success': False,
+                'data': None,
+                'reason': form.errors
+            }, 400
+
     def delete(self, eid):
-        g.graph.vertices.delete(eid)
+        self.graph.vertices.delete(eid)
 
         return {
             'success': True,
@@ -210,8 +245,8 @@ class VertexView(MethodView):
         }, 200
 
 
-@register_view(blueprint, 'graph-api-walk', '/walk', pk='eid')
-class WalkView(MethodView):
+@register_api(blueprint, 'graph-api-walk', '/walk', pk='eid', pk_type='string')
+class WalkAPI(GraphAPI):
     def get(self, eid):
         if eid is None:
             return {
@@ -231,7 +266,7 @@ class WalkView(MethodView):
                     if propname not in ['depth', 'lookup']
                 }
 
-                root_vertex = g.graph.vertices.get(eid)
+                root_vertex = self.graph.vertices.get(eid)
 
                 if root_vertex is None:
                     return {

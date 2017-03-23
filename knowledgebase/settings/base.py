@@ -6,17 +6,17 @@ import os
 class Settings(object):
     DEBUG = bool(os.environ.setdefault(
         'KNOWLEDGEBASE_DEBUG',
-        True
+        '1'
     ))
     TESTING = bool(os.environ.setdefault(
         'KNOWLEDGEBASE_TESTING',
-        False
+        '0'
     ))
 
     DATABASE = {
         'backend': os.environ.setdefault(
             'KNOWLEDGEBASE_DATABASE_BACKEND',
-            None
+            ''
         ),
         'uri': os.environ.setdefault(
             'KNOWLEDGEBASE_DATABASE_URI',
@@ -24,11 +24,11 @@ class Settings(object):
         ),
         'username': os.environ.setdefault(
             'KNOWLEDGEBASE_DATABASE_USERNAME',
-            None
+            ''
         ),
         'password': os.environ.setdefault(
             'KNOWLEDGEBASE_DATABASE_PASSWORD',
-            None
+            ''
         )
     }
 

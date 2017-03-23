@@ -41,13 +41,21 @@ class Element(object):
             self._data = deepcopy(data)
 
     def __getattr__(self, attr):
-        return self._data.get(attr)
+        return self.__dict__['_data'].get(attr)
 
     def __setattr__(self, attr, val):
-        self._data[attr] = val
+        if attr not in ['_data', '_graph']:
+            self._data[attr] = val
+
+        else:
+            super(Element, self).__setattr__(attr, val)
 
     def __delattr__(self, attr):
-        self._data.pop(attr)
+        if attr not in ['_data', '_graph']:
+            self._data.pop(attr)
+
+        else:
+            super(Element, self).__delattr__(attr)
 
     @classmethod
     def get(cls, graph, eid):
@@ -154,3 +162,6 @@ class Graph(object):
     @property
     def edges(self):
         return self._edges
+
+    def close(self):
+        raise NotImplementedError('Abstract class cannot close database')

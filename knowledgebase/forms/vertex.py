@@ -4,9 +4,9 @@ from wtforms import Form, StringField, validators
 
 
 class VertexForm(Form):
-    type = StringField('Edge type', [
+    type = StringField('Vertex type', [
         validators.DataRequired()
     ])
-    name = StringField('Edge name', [
+    name = StringField('Vertex name', [
         validators.DataRequired()
     ])

@@ -193,5 +193,8 @@ class Graph(BaseGraph):
         self.conn = MongoClient(self.conf.uri)
         self.db = self.conn.get_default_database()
 
-        if self.conf.username is not None and self.conf.password is not None:
+        if self.conf.username and self.conf.password:
             self.db.authenticate(self.conf.username, self.conf.password)
+
+    def close(self):
+        self.conn.close()
