@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from knowledgebase.utils import register_api, API
+from knowledgebase.utils.api import (
+    initialize_api,
+    register_api,
+    register_api_method,
+    API
+)
 from knowledgebase.forms.vertex import VertexForm
 from knowledgebase.forms.edge import EdgeForm
 from knowledgebase.forms.walk import WalkForm
@@ -8,7 +13,7 @@ from knowledgebase.forms.walk import WalkForm
 from flask import Blueprint, request, current_app
 
 
-blueprint = Blueprint('graph-api', __name__)
+blueprint = initialize_api(Blueprint('graph-api', __name__))
 
 
 class GraphAPI(API):
@@ -18,8 +23,16 @@ class GraphAPI(API):
         self.graph = current_app.config['get_database']()
 
 
-@register_api(blueprint, 'graph-api-edge', '/edge', pk='eid', pk_type='string')
+@register_api(
+    blueprint,
+    'graph-api-edge',
+    '/edge',
+    pk='eid',
+    pk_type='string'
+)
 class EdgeAPI(GraphAPI):
+    @register_api_method(rel='instances')
+    @register_api_method(rel='instance', pk=True)
     def get(self, eid):
         if eid is None:
             return {
@@ -45,6 +58,7 @@ class EdgeAPI(GraphAPI):
                     'data': None
                 }, 404
 
+    @register_api_method(rel='create', schema=EdgeForm)
     def post(self):
         form = EdgeForm(request.form)
 
@@ -89,6 +103,7 @@ class EdgeAPI(GraphAPI):
                 'reason': form.errors
             }, 400
 
+    @register_api_method(rel='update', pk=True, schema=EdgeForm)
     def put(self, eid):
         form = EdgeForm(request.form)
 
@@ -137,6 +152,7 @@ class EdgeAPI(GraphAPI):
                 'reason': form.errors
             }, 400
 
+    @register_api_method(rel='remove', pk=True)
     def delete(self, eid):
         self.graph.edges.delete(eid)
 
@@ -146,10 +162,18 @@ class EdgeAPI(GraphAPI):
         }, 200
 
 
-@register_api(blueprint, 'graph-api-vertex', '/vertex', pk='eid', pk_type='string')
+@register_api(
+    blueprint,
+    'graph-api-vertex',
+    '/vertex',
+    pk='vid',
+    pk_type='string'
+)
 class VertexAPI(GraphAPI):
-    def get(self, eid):
-        if eid is None:
+    @register_api_method(rel='instances')
+    @register_api_method(rel='instance', pk=True)
+    def get(self, vid):
+        if vid is None:
             return {
                 'success': True,
                 'data': [
@@ -159,7 +183,7 @@ class VertexAPI(GraphAPI):
             }, 200
 
         else:
-            vertex = self.graph.vertices.get(eid)
+            vertex = self.graph.vertices.get(vid)
 
             if vertex is not None:
                 return {
@@ -173,6 +197,7 @@ class VertexAPI(GraphAPI):
                     'data': None
                 }, 404
 
+    @register_api_method(rel='create', schema=VertexForm)
     def post(self):
         form = VertexForm(request.form)
 
@@ -180,7 +205,7 @@ class VertexAPI(GraphAPI):
             properties = {
                 propname: request.form[propname]
                 for propname in request.form
-                if propname not in ['type', 'name', 'eid']
+                if propname not in ['type', 'name', 'vid']
             }
 
             vertex = self.graph.vertices.create(
@@ -202,11 +227,12 @@ class VertexAPI(GraphAPI):
                 'reason': form.errors
             }, 400
 
-    def put(self, eid):
+    @register_api_method(rel='update', pk=True, schema=VertexForm)
+    def put(self, vid):
         form = VertexForm(request.form)
 
         if form.validate():
-            vertex = self.graph.vertices.get(eid)
+            vertex = self.graph.vertices.get(vid)
 
             if vertex is None:
                 return {
@@ -218,7 +244,7 @@ class VertexAPI(GraphAPI):
             vertex.name = form.name.data
 
             for propname in request.form:
-                if propname not in ['type', 'name', 'eid']:
+                if propname not in ['type', 'name', 'vid']:
                     setattr(vertex, propname, request.form[propname])
 
             vertex.save()
@@ -235,8 +261,9 @@ class VertexAPI(GraphAPI):
                 'reason': form.errors
             }, 400
 
-    def delete(self, eid):
-        self.graph.vertices.delete(eid)
+    @register_api_method(rel='remove', pk=True)
+    def delete(self, vid):
+        self.graph.vertices.delete(vid)
 
         return {
             'success': True,
@@ -244,8 +271,15 @@ class VertexAPI(GraphAPI):
         }, 200
 
 
-@register_api(blueprint, 'graph-api-walk', '/walk', pk='eid', pk_type='string')
+@register_api(
+    blueprint,
+    'graph-api-walk',
+    '/walk',
+    pk='eid',
+    pk_type='string'
+)
 class WalkAPI(GraphAPI):
+    @register_api_method(rel='instances', pk=True, schema=WalkForm)
     def get(self, eid):
         if eid is None:
             return {
@@ -306,21 +340,3 @@ class WalkAPI(GraphAPI):
                     'data': None,
                     'reason': form.errors
                 }, 400
-
-    def post(self):
-        return {
-            'success': False,
-            'data': None
-        }, 501
-
-    def put(self, eid):
-        return {
-            'success': False,
-            'data': None
-        }, 501
-
-    def delete(self, eid):
-        return {
-            'success': False,
-            'data': None
-        }, 501
