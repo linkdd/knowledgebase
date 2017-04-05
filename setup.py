@@ -84,5 +84,9 @@ setup(
     test_suite=get_test_suite(),
     install_requires=REQUIREMENTS,
     classifiers=CLASSIFIERS,
-    zip_safe=False
+    zip_safe=False,
+    include_package_data=True,
+    package_data={
+        NAME: ['www/*']
+    }
 )

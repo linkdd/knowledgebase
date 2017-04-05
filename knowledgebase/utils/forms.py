@@ -7,6 +7,7 @@ from inspect import isclass
 
 def pretty_name(name):
     """Converts 'first_name' to 'First name'"""
+
     if not name:
         return u''
 
@@ -90,74 +91,94 @@ class WTFormToJSONSchema(object):
 
     def __init__(
         self,
+        form,
         conversions=None,
         include_array_item_titles=True,
-        include_array_title=True
+        include_array_title=True,
+        forms_seen=None,
+        json_schema=None,
+        path=None,
+        *args, **kwargs
     ):
+        super(WTFormToJSONSchema, self).__init__(*args, **kwargs)
+
         self.conversions = conversions or self.DEFAULT_CONVERSIONS
         self.include_array_item_titles = include_array_item_titles
         self.include_array_title = include_array_title
 
-    def convert_form(self, form, json_schema=None, forms_seen=None, path=None):
-        if forms_seen is None:
-            forms_seen = dict()
+        self.form = form
+        self.forms_seen = {}
+        self.json_schema = {
+            'type': 'object',
+            'properties': OrderedDict()
+        }
+        self.path = []
 
-        if path is None:
-            path = []
+        if forms_seen is not None:
+            self.forms_seen = forms_seen
 
-        if json_schema is None:
-            json_schema = {
-                #'title':dockit_schema._meta
-                #'description'
-                'type': 'object',
-                'properties': OrderedDict()
-            }
+        if json_schema is not None:
+            self.json_schema = json_schema
 
-        key = id(form)
+        if path is not None:
+            self.path = path
 
-        if key in forms_seen:
-            json_schema['$ref'] = '#'+'/'.join(forms_seen[key])
-            json_schema.pop('properties', None)
-            return json_schema
+        key = id(self.form)
 
-        forms_seen[key] = path
-
-        if isclass(form):
-            form = form()
-            fields = [name for name, ufield in form._unbound_fields]
+        if key in self.forms_seen:
+            self.json_schema['$ref'] = '#{0}'.format(
+                '/'.join(self.forms_seen[key])
+            )
+            self.json_schema.pop('properties', None)
 
         else:
-            fields = form._fields.keys()
+            self.forms_seen[key] = self.path
+
+        if isclass(self.form):
+            self.form = self.form()
+            fields = [
+                name
+                for name, ufield in self.form._unbound_fields
+            ]
+
+        else:
+            fields = self.form._fields.keys()
 
         for name in fields:
-            if name not in form._fields:
+            if name not in self.form._fields:
                 continue
 
-            field = form._fields[name]
-            json_schema['properties'][name] = self.convert_formfield(
-                name, field, json_schema, forms_seen, path
+            field = self.form._fields[name]
+            self.json_schema['properties'][name] = self._convert_formfield(
+                name=name,
+                field=field
             )
 
-        return json_schema
+    def __call__(self):
+        return self.json_schema
 
-    def convert_formfield(self, name, field, json_schema, forms_seen, path):
+    def _convert_formfield(self, name=None, field=None):
         widget = field.widget
-        path = path + [name]
         target_def = {
             'title': field.label.text,
             'description': field.description
         }
 
+        self.path.append(name)
+
         if field.flags.required:
             target_def['required'] = True
-            json_schema.setdefault('required', list())
-            json_schema['required'].append(name)
+            self.json_schema.setdefault('required', list())
+            self.json_schema['required'].append(name)
 
         ftype = type(field).__name__
+        methodname = '_convert_{0}'.format(ftype)
+        method = getattr(self, methodname, None)
 
-        if hasattr(self, 'convert_%s' % ftype):
-            return getattr(self, 'convert_%s' % ftype)(
-                name, field, json_schema
+        if callable(method):
+            return method(
+                name=name,
+                field=field
             )
 
         params = self.conversions.get(ftype)
@@ -168,18 +189,15 @@ class WTFormToJSONSchema(object):
         elif ftype == 'FormField':
             key = id(field.form_class)
 
-            if key in forms_seen:
-                return {"$ref": "#"+"/".join(forms_seen[key])}
+            if key in self.forms_seen:
+                return {'$ref': '#'.format('/'.join(self.forms_seen[key]))}
 
-            forms_seen[key] = path
-            target_def.update(
-                self.convert_form(
-                    field.form_class(obj=getattr(field, '_obj', None)),
-                    None,
-                    forms_seen,
-                    path
-                )
+            self.forms_seen[key] = self.path
+            schemagen = WTFormToJSONSchema(
+                field.form_class(obj=getattr(field, '_obj', None))
             )
+
+            target_def.update(schemagen())
 
         elif ftype == 'FieldList':
             if not self.include_array_title:
@@ -194,29 +212,38 @@ class WTFormToJSONSchema(object):
             )
 
             target_def['items'] = self.convert_formfield(
-                name, subfield, json_schema, forms_seen, path
+                name=name,
+                field=subfield
             )
 
             if not self.include_array_item_titles:
                 target_def['items'].pop('title', None)
                 target_def['items'].pop('description', None)
 
-        elif hasattr(widget, 'input_type'):
-            it = self.INPUT_TYPE_MAP.get(widget.input_type, 'StringField')
-
-            if hasattr(self, 'convert_%s' % it):
-                return getattr(self, 'convert_%s' % it)(
-                    name, field, json_schema
-                )
-
-            target_def.update(self.conversions[it])
-
         else:
-            target_def['type'] = 'string'
+            try:
+                input_type = widget.input_type
+
+            except AttributeError:
+                target_def['type'] = 'string'
+
+            else:
+                it = self.INPUT_TYPE_MAP.get(input_type, 'StringField')
+
+                methodname = '_convert_{0}'.format(it)
+                method = getattr(self, methodname, None)
+
+                if callable(method):
+                    return method(
+                        name=name,
+                        field=field
+                    )
+
+                target_def.update(self.conversions[it])
 
         return target_def
 
-    def convert_SelectField(self, name, field, json_schema):
+    def _convert_SelectField(self, field=None, **_):
         values = list()
 
         for val, label in field.choices:
@@ -238,7 +265,7 @@ class WTFormToJSONSchema(object):
 
         return target_def
 
-    def convert_RadioField(self, name, field, json_schema):
+    def _convert_RadioField(self, field=None, **_):
         target_def = {
             'title': field.label.text,
             'description': field.description,
@@ -251,3 +278,8 @@ class WTFormToJSONSchema(object):
             target_def['required'] = True
 
         return target_def
+
+
+def form_to_jsonschema(*args, **kwargs):
+    generator = WTFormToJSONSchema(*args, **kwargs)
+    return generator()

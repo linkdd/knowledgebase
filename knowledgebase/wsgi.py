@@ -2,8 +2,8 @@
 
 from knowledgebase.db.base import GraphConfig
 
+from flask import Flask, redirect, g
 from importlib import import_module
-from flask import Flask, g
 from six import raise_from
 import os
 
@@ -84,6 +84,12 @@ for blueprint, prefix in app.config['BLUEPRINTS']:
         blueprint = attribute
 
     app.register_blueprint(blueprint, url_prefix=prefix)
+
+# Initialize root URL
+
+@app.route('/')
+def root_view():
+    return redirect('/static/')
 
 
 if __name__ == '__main__':

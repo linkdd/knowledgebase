@@ -33,5 +33,8 @@ class Settings(object):
     }
 
     BLUEPRINTS = [
-        ('knowledgebase.blueprints.graph.blueprint', '/api/v1/graph')
+        ('knowledgebase.blueprints.graph.blueprint', '/api/v1/graph'),
+        ('knowledgebase.blueprints.www.blueprint', '/static')
     ]
+
+    ROOT_REDIRECT = '/static/index.html'

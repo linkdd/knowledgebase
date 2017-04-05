@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from knowledgebase.utils.forms import WTFormToJSONSchema
+from knowledgebase.utils.forms import form_to_jsonschema
+
 from flask import make_response, Response, url_for
 from flask.views import MethodView
 import inspect
@@ -71,9 +72,7 @@ def register_api(blueprint, endpoint, url, pk='id', pk_type='int'):
                     link['href'] = '{0}/<{1}:{2}>'.format(url, pk_type, pk)
 
                 if annotation['schema'] is not None:
-                    link['schema'] = WTFormToJSONSchema().convert_form(
-                        annotation['schema']
-                    )
+                    link['schema'] = form_to_jsonschema(annotation['schema'])
 
                 links.append(link)
 
@@ -120,7 +119,7 @@ class API(MethodView):
         resp.headers['Content-Type'] = 'application/json'
         return resp
 
-    def get(self):
+    def get(self, eid):
         return {
             'success': False,
             'data': None
