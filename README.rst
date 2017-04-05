@@ -54,6 +54,14 @@ Installation
 
    pip install knowledgebase
 
+Usage
+-----
+
+.. code-block:: text
+
+   python -m knowledgebase.wsgi
+   python -m knowledgebase.wsgi -H 0.0.0.0 -p 8080
+
 Features
 --------
 

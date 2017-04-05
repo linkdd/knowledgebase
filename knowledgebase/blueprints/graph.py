@@ -4,9 +4,8 @@ from knowledgebase.utils import register_api, API
 from knowledgebase.forms.vertex import VertexForm
 from knowledgebase.forms.edge import EdgeForm
 from knowledgebase.forms.walk import WalkForm
-from knowledgebase.wsgi import get_database
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 
 
 blueprint = Blueprint('graph-api', __name__)
@@ -16,7 +15,7 @@ class GraphAPI(API):
     def __init__(self, *args, **kwargs):
         super(GraphAPI, self).__init__(*args, **kwargs)
 
-        self.graph = get_database()
+        self.graph = current_app.config['get_database']()
 
 
 @register_api(blueprint, 'graph-api-edge', '/edge', pk='eid', pk_type='string')

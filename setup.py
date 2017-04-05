@@ -13,9 +13,9 @@ AUTHOR = 'David Delassus'
 AUTHOR_EMAIL = 'david.jose.delassus@gmail.com'
 LICENSE = 'MIT'
 REQUIREMENTS = [
-    'b3j0f.utils>=1.4.4',
     'Flask>=0.12',
     'wtforms>=2.1',
+    'waitress>=1.0.2'
     'pymongo>=3.4.0'
 ]
 
@@ -83,5 +83,6 @@ setup(
     packages=find_packages(),
     test_suite=get_test_suite(),
     install_requires=REQUIREMENTS,
-    classifiers=CLASSIFIERS
+    classifiers=CLASSIFIERS,
+    zip_safe=False
 )
