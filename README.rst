@@ -96,7 +96,7 @@ will be developed soon.
 Status
 ------
 
- - Graph REST API : 80%
+ - Graph REST API : 100%
  - Web UI : 0%
  - test coverage: 0%
  - documentation: 0%
