@@ -15,7 +15,7 @@ LICENSE = 'MIT'
 REQUIREMENTS = [
     'Flask>=0.12',
     'wtforms>=2.1',
-    'waitress>=1.0.2'
+    'waitress>=1.0.2',
     'pymongo>=3.4.0'
 ]
 
