@@ -190,7 +190,7 @@ class WTFormToJSONSchema(object):
             key = id(field.form_class)
 
             if key in self.forms_seen:
-                return {'$ref': '#'.format('/'.join(self.forms_seen[key]))}
+                return {'$ref': '#{0}'.format('/'.join(self.forms_seen[key]))}
 
             self.forms_seen[key] = self.path
             schemagen = WTFormToJSONSchema(
