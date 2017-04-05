@@ -67,7 +67,7 @@ def get_long_description():
 
 
 def get_test_suite():
-    return 'knowledgebase'
+    return 'tests'
 
 
 setup(
