@@ -89,7 +89,7 @@ for blueprint, prefix in app.config['BLUEPRINTS']:
 
 @app.route('/')
 def root_view():
-    return redirect('/static/')
+    return redirect(app.config['ROOT_REDIRECT'])
 
 
 if __name__ == '__main__':

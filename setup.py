@@ -87,6 +87,12 @@ setup(
     zip_safe=False,
     include_package_data=True,
     package_data={
-        NAME: ['www/*']
+        '': [
+            os.path.join('..', path, filename)
+            for path, _, filenames in os.walk(
+                os.path.join(get_cwd(), NAME, 'www')
+            )
+            for filename in filenames
+        ]
     }
 )
